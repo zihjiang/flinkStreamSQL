@@ -19,8 +19,6 @@
 package com.dtstack.flink.sql.sink.redis;
 
 import com.dtstack.flink.sql.outputformat.AbstractDtRichOutputFormat;
-import com.dtstack.flink.sql.sink.redis.enums.RedisType;
-import com.google.common.collect.Maps;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
@@ -37,11 +35,8 @@ import redis.clients.jedis.JedisSentinelPool;
 
 import java.io.Closeable;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author yanxi
@@ -73,6 +68,8 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
 
     protected List<String> primaryKeys;
 
+    protected String keyType;
+
     protected int timeout;
 
     private JedisPool pool;
@@ -82,6 +79,14 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
     private JedisSentinelPool jedisSentinelPool;
 
     private GenericObjectPoolConfig poolConfig;
+
+    private String hashKey;
+
+    private String hashValueKey;
+
+    private String zsetScoreKey;
+
+    private String zsetMemberKey;
 
     private RedisOutputFormat(){
     }
@@ -161,6 +166,32 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             return;
         }
 
+        switch (keyType) {
+            case "string":
+                writeStringRecord(row);
+                break;
+            case "hash":
+                writeHashRecord(row);
+                break;
+
+            case "zset":
+                writeZsetRecord(row);
+                break;
+            default:
+                writeStringRecord(row);
+                break;
+        }
+
+
+        if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0){
+            LOG.info(record.toString());
+        }
+        outRecords.inc();
+
+    }
+
+    // 类型为string
+    private void writeStringRecord(Row row) {
         HashMap<String, Integer> map = new HashMap<>(8);
         for (String primaryKey : primaryKeys) {
             for (int i = 0; i < fieldNames.length; i++) {
@@ -169,7 +200,6 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
                 }
             }
         }
-
         List<String> kvList = new LinkedList<>();
         for (String primaryKey : primaryKeys){
             StringBuilder primaryKv = new StringBuilder();
@@ -190,12 +220,85 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             }
             jedis.set(key.toString(), value);
         }
-
-        if (outRecords.getCount() % ROW_PRINT_FREQUENCY == 0){
-            LOG.info(record.toString());
-        }
-        outRecords.inc();
     }
+    // 类型为List
+    private void writeListRecord(Row row) {
+
+    }
+    // 类型为Set
+    private void writeSetRecord(Row row) {
+        // TODO
+
+    }
+    // 类型为Zset
+    private void writeZsetRecord(Row row) {
+        int zsetMemberKeyIndex = printArray(fieldNames, zsetMemberKey);
+        int zsetScoreKeyIndex = printArray(fieldNames, zsetScoreKey);
+        if (zsetMemberKeyIndex < 0) {
+            LOG.warn("field {}  not exist, ignore", zsetMemberKey);
+        }else if(zsetScoreKeyIndex < 0) {
+            LOG.warn("field {}  not exist, ignore", zsetScoreKey);
+        } else if(row.getField(zsetScoreKeyIndex) == null) {
+            LOG.warn("zsetScoreKey is null , ignore");
+        } else if(row.getField(zsetScoreKeyIndex)!= null) {
+            String memberKey;
+            Double scoreKey;
+            try {
+                memberKey = row.getField(zsetMemberKeyIndex) == null ? "null" : row.getField(zsetMemberKeyIndex).toString();
+                scoreKey =Double.parseDouble(row.getField(zsetScoreKeyIndex).toString());
+
+//                jedis.zadd(tableName, jedis.zscore(tableName, memberKey) + scoreKey, memberKey);
+                jedis.zincrby(tableName, scoreKey, memberKey);
+            }catch (Exception e) {
+//                LOG.warn("zsetScoreKey should double or integer but is {}, ignore", row.getField(zsetScoreKeyIndex));
+                e.printStackTrace();
+            }
+        }
+    }
+    // 类型为hash
+    private void writeHashRecord(Row row) {
+        int hashKeyIndex = printArray(fieldNames, hashKey);
+        int hashValueKeyIndex = printArray(fieldNames, hashValueKey);
+        if (hashKeyIndex < 0) {
+            LOG.warn("field {}  not exist, ignore", hashKey);
+        }else if(hashValueKeyIndex < 0) {
+            LOG.warn("field {}  not exist, ignore", hashValueKey);
+        } else if(row.getField(hashKeyIndex) == null) {
+            LOG.warn("hashKey is null , ignore");
+        } else if(row.getField(hashValueKeyIndex)!= null) {
+            String key;
+            String value;
+            try {
+                key = row.getField(hashKeyIndex).toString();
+                value =row.getField(hashValueKeyIndex).toString();
+
+//                jedis.zadd(tableName, jedis.zscore(tableName, memberKey) + scoreKey, memberKey);
+//                jedis.zincrby(tableName, scoreKey, memberKey);
+                jedis.hset(tableName, key, value);
+            }catch (Exception e) {
+//                LOG.warn("zsetScoreKey should double or integer but is {}, ignore", row.getField(ha));
+                e.printStackTrace();
+            }
+        }
+
+
+    }
+
+    /**
+     * 返回数组的下标, 不存在则返回-1
+     * @param array 数组元素
+     * @param value 数组里的值
+     * @return
+     */
+    public int printArray(String[] array,String value){
+        for(int i = 0;i<array.length;i++){
+            if(array[i] != null && value.equals(array[i])){
+                return i;
+            }
+        }
+        return -1;//当if条件不成立时，默认返回一个负数值-1
+    }
+
 
     @Override
     public void close() throws IOException {
@@ -259,6 +362,11 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             return this;
         }
 
+        public RedisOutputFormatBuilder setKeyType(String keytype){
+            redisOutputFormat.keyType = keytype;
+            return this;
+        }
+
         public RedisOutputFormatBuilder setTimeout(int timeout){
             redisOutputFormat.timeout = timeout;
             return this;
@@ -289,6 +397,22 @@ public class RedisOutputFormat extends AbstractDtRichOutputFormat<Tuple2> {
             return this;
         }
 
+        public RedisOutputFormatBuilder setHashKey(String hashKey){
+            redisOutputFormat.hashKey = hashKey;
+            return this;
+        }
+        public RedisOutputFormatBuilder setHashValueKey(String HashValueKey){
+            redisOutputFormat.hashValueKey = HashValueKey;
+            return this;
+        }
+        public RedisOutputFormatBuilder setZsetScoreKey(String zsetScoreKey){
+            redisOutputFormat.zsetScoreKey = zsetScoreKey;
+            return this;
+        }
+        public RedisOutputFormatBuilder setZsetMemberKey(String zsetMemberKey){
+            redisOutputFormat.zsetMemberKey = zsetMemberKey;
+            return this;
+        }
         public RedisOutputFormat finish(){
             if (redisOutputFormat.url == null){
                 throw new IllegalArgumentException("No URL supplied.");

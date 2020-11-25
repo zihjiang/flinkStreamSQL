@@ -49,6 +49,13 @@ public class RedisSinkParser extends AbstractTableParser {
         redisTableInfo.setRedisType(MathUtil.getString(props.get(RedisTableInfo.REDIS_TYPE.toLowerCase())));
         redisTableInfo.setMasterName(MathUtil.getString(props.get(RedisTableInfo.MASTER_NAME.toLowerCase())));
 
+        redisTableInfo.setKeyType(MathUtil.getString(props.get(RedisTableInfo.KEY_TYPE.toLowerCase())));
+
+        redisTableInfo.setHashKey(MathUtil.getString(props.get(RedisTableInfo.HASHKEY.toLowerCase())));
+        redisTableInfo.setHashValueKey(MathUtil.getString(props.get(RedisTableInfo.HASHKVALUEEY.toLowerCase())));
+        redisTableInfo.setZsetMemberKey(MathUtil.getString(props.get(RedisTableInfo.ZSETMEMBERKEY.toLowerCase())));
+        redisTableInfo.setZsetScoreKey(MathUtil.getString(props.get(RedisTableInfo.ZSETSCOREKEY.toLowerCase())));
+
         String primaryKeysStr = MathUtil.getString(props.get(RedisTableInfo.PRIMARY_KEYS_NAME));
         List<String> primaryKeysList = Lists.newArrayList();
         if (!StringUtils.isEmpty(primaryKeysStr)) {

@@ -49,6 +49,16 @@ public class RedisTableInfo extends AbstractTargetTableInfo {
 
     public static final String PRIMARY_KEYS_NAME = "primarykeys";
 
+    public static final String KEY_TYPE = "keyType";
+
+    public static final String HASHKEY = "hashKey";
+
+    public static final String HASHKVALUEEY = "hashValueKey";
+
+    public static final String ZSETSCOREKEY = "zsetScoreKey";
+
+    public static final String ZSETMEMBERKEY = "zsetMemberKey";
+
     public RedisTableInfo(){
         setType(CURR_TYPE);
     }
@@ -72,6 +82,16 @@ public class RedisTableInfo extends AbstractTargetTableInfo {
     private int redisType;
 
     private String masterName;
+
+    private String keyType;
+
+    private String hashKey;
+
+    private String hashValueKey;
+
+    private String zsetScoreKey;
+
+    private String zsetMemberKey;
 
     public String getUrl() {
         return url;
@@ -153,6 +173,42 @@ public class RedisTableInfo extends AbstractTargetTableInfo {
         this.masterName = masterName;
     }
 
+    public String getKeyType() { return keyType;}
+
+    public void setKeyType(String keyType) { this.keyType = keyType;}
+
+    public String getHashKey() {
+        return hashKey;
+    }
+
+    public void setHashKey(String hashKey) {
+        this.hashKey = hashKey;
+    }
+
+    public String getHashValueKey() {
+        return hashValueKey;
+    }
+
+    public void setHashValueKey(String hashValueKey) {
+        this.hashValueKey = hashValueKey;
+    }
+
+    public String getZsetScoreKey() {
+        return zsetScoreKey;
+    }
+
+    public void setZsetScoreKey(String zsetScoreKey) {
+        this.zsetScoreKey = zsetScoreKey;
+    }
+
+    public String getZsetMemberKey() {
+        return zsetMemberKey;
+    }
+
+    public void setZsetMemberKey(String zsetMemberKey) {
+        this.zsetMemberKey = zsetMemberKey;
+    }
+
     @Override
     public boolean check() {
         Preconditions.checkNotNull(url, "redis field of URL is required");
@@ -160,6 +216,21 @@ public class RedisTableInfo extends AbstractTargetTableInfo {
         Preconditions.checkNotNull(password, "redis field of password is required");
         if (redisType == 2){
             Preconditions.checkNotNull(masterName, "redis field of MasterName is required");
+        }
+        if ("hash".equals(keyType)) {
+            Preconditions.checkNotNull(hashKey, "When type is " + keyType + ", the hashKey field is required");
+            Preconditions.checkNotNull(hashValueKey, "When type is " + keyType + ", the hashValueKey field is required");
+        }
+        if ("zset".equals(keyType)) {
+            Preconditions.checkNotNull(zsetMemberKey, "When type is " + keyType + ", the zsetMemberKey field is required");
+            Preconditions.checkNotNull(zsetScoreKey, "When type is " + keyType + ", the zsetScoreKey field is required");
+        }
+        if ("list".equals(keyType)) {
+            // TODO
+
+        }
+        if ("set".equals(keyType)) {
+            // TODO
         }
         return true;
     }

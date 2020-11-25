@@ -53,6 +53,16 @@ public class RedisSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
 
     protected List<String> primaryKeys;
 
+    protected String keyType;
+
+    private String hashKey;
+
+    private String hashValueKey;
+
+    private String zsetScoreKey;
+
+    private String zsetMemberKey;
+
     protected int timeout;
 
     protected int redisType;
@@ -83,6 +93,12 @@ public class RedisSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
         this.minIdle = redisTableInfo.getMinIdle();
         this.masterName = redisTableInfo.getMasterName();
         this.timeout = redisTableInfo.getTimeout();
+
+        this.keyType = redisTableInfo.getKeyType();
+        this.hashKey = redisTableInfo.getHashKey();
+        this.hashValueKey = redisTableInfo.getHashValueKey();
+        this.zsetMemberKey = redisTableInfo.getZsetMemberKey();
+        this.zsetScoreKey = redisTableInfo.getZsetScoreKey();
         return this;
     }
 
@@ -106,12 +122,17 @@ public class RedisSink implements RetractStreamTableSink<Row>, IStreamSinkGener<
                 .setFieldNames(this.fieldNames)
                 .setFieldTypes(this.fieldTypes)
                 .setPrimaryKeys(this.primaryKeys)
+                .setKeyType(this.keyType)
                 .setTimeout(this.timeout)
                 .setRedisType(this.redisType)
                 .setMaxTotal(this.maxTotal)
                 .setMaxIdle(this.maxIdle)
                 .setMinIdle(this.minIdle)
-                .setMasterName(this.masterName);
+                .setMasterName(this.masterName)
+                .setHashKey(this.hashKey)
+                .setHashValueKey(this.hashValueKey)
+                .setZsetMemberKey(this.zsetMemberKey)
+                .setZsetScoreKey(this.zsetScoreKey);
         RedisOutputFormat redisOutputFormat = builder.finish();
         RichSinkFunction richSinkFunction = new OutputFormatSinkFunction(redisOutputFormat);
         DataStreamSink dataStreamSink = dataStream.addSink(richSinkFunction);

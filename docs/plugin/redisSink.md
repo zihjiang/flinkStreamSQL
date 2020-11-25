@@ -19,7 +19,7 @@ CREATE TABLE tableName(
 redis5.0
 
 ## 3.表结构定义
- 
+
 |参数名称|含义|
 |----|---|
 | tableName | 在 sql 中使用的名称;即注册到flink-table-env上的名称
@@ -27,25 +27,30 @@ redis5.0
 | colType | 列类型，当前只支持varchar|
 
 ## 4.参数：
-  
+
 |参数名称|含义|是否必填|默认值|
 |----|---|---|-----|
 | type | 表名 输出表类型[mysq&#124;hbase&#124;elasticsearch&#124;redis]|是||
 | url | redis 的地址;格式ip:port[,ip:port]|是||
 | password | redis 的密码 |是||
-| redisType | redis模式（1 单机，2 哨兵， 3 集群）| 是 |
-| masterName | 主节点名称（哨兵模式下为必填项） | 否 |
+| redisType | redis模式（1 单机，2 哨兵， 3 集群）| 是 ||
+| masterName | 主节点名称（哨兵模式下为必填项） | 否 ||
 | database | reids 的数据库地址|否||
 | tableName | redis 的表名称|是||
 | parallelism | 并行度设置|否|1|
 |timeout| 连接超时时间|否|10000|
 |maxTotal|最大连接数|否|8|
 |maxIdle|最大空闲连接数|否|8|
-|minIdle|最小空闲连接数|否||0|
+|minIdle|最小空闲连接数|否||
 |masterName| 哨兵模式下的masterName|否||
 |primarykeys|主键字段，多个字段以逗号分割|是||
-      
-  
+|keyType|redis的key类型, 可选string,hash,zset|否|string|
+|hashKey|keyType为hash情况下, hash的key字段(当keyType为hash下为必填)|否||
+|hashValueKey|keyType为zset情况下, zset的value字段(当keyType为zset下为必填)|否||
+|zsetScoreKey|keyType为zset情况下, zset的score字段(当keyType为zset下为必填)|否||
+|zsetMemberKey|keyType为zset情况下, zset的member字段(当keyType为zset下为必填)|否||
+
+
 ## 5.样例：
 ```
  CREATE TABLE MyTable(
@@ -63,7 +68,7 @@ redis5.0
      topicIsPattern ='false',
      parallelism ='1'
   );
- 
+ -- keyType为string时
  CREATE TABLE MyResult(
      channel VARCHAR,
      pv VARCHAR
@@ -73,7 +78,7 @@ redis5.0
      redisType ='1',
      url ='172.16.8.109:6379',
      tableName ='resultTable',
-     partitionedJoin ='false',
+     keyType ='string',
      parallelism ='1',
      database ='0',
      timeout ='10000',
@@ -81,7 +86,26 @@ redis5.0
      maxIdle='8',
      minIdle='0'
   );
- 
+ -- keyType为hash时
+  CREATE TABLE MyResultHash(
+     channel VARCHAR,
+     pv VARCHAR
+  )WITH(
+     type ='redis',
+     primarykeys='name',
+     redisType ='1',
+     url ='172.16.8.109:6379',
+     tableName ='resultTable',
+     keyType ='hash',
+     hashKey ='name',
+     hashValueKey ='age',
+     parallelism ='1',
+     database ='0',
+     timeout ='10000',
+     maxTotal ='60000',
+     maxIdle='8',
+     minIdle='0'
+  );
  insert          
  into
      MyResult
@@ -89,8 +113,8 @@ redis5.0
          channel,
          name as pv                                             
      from
-         MyTable a                                        
- ```
+         MyTable a;
+```
 
 ## 6.redis完整样例
 ### redis数据说明
