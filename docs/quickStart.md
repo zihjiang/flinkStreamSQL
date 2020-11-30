@@ -101,7 +101,3 @@ sh submit.sh
 参数具体细节请看[命令参数说明](./config.md)
 
 任务sql详情请看[任务样例](./demo.md)
-
-### 招聘
-1.大数据平台开发工程师，想了解岗位详细信息可以添加本人微信号ysqwhiletrue,注明招聘，如有意者发送简历至sishu@dtstack.com。
-  

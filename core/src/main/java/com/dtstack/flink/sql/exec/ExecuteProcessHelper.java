@@ -180,11 +180,28 @@ public class ExecuteProcessHelper {
             return jarUrlList;
         }
 
-        List<String> addJarFileList = OBJECT_MAPPER.readValue(URLDecoder.decode(addJarListStr, Charsets.UTF_8.name()), List.class);
-        //Get External jar to load
-        for (String addJarPath : addJarFileList) {
-            jarUrlList.add(new File(addJarPath).toURI().toURL());
+        // 可以写成http://xxx.jar,http:/xxx.jar,
+        if (addJarListStr.startsWith("http")) {
+            List<String> addJarFileList = Arrays.asList(addJarListStr.split(","));
+            for (String addJarPath : addJarFileList) {
+                LOG.info("loading http jar {}", addJarPath);
+                jarUrlList.add(new URL(addJarPath));
+            }
+        } else if(addJarListStr.startsWith("/")) {
+            List<String> addJarFileList = Arrays.asList(addJarListStr.split(","));
+            for (String addJarPath : addJarFileList) {
+                LOG.info("loading local jar {}", addJarPath);
+                jarUrlList.add(new File(addJarPath).toURI().toURL());
+            }
+        } else {
+            // 常规方法, 保持不变
+            List<String> addJarFileList = OBJECT_MAPPER.readValue(URLDecoder.decode(addJarListStr, Charsets.UTF_8.name()), List.class);
+            //Get External jar to load
+            for (String addJarPath : addJarFileList) {
+                jarUrlList.add(new File(addJarPath).toURI().toURL());
+            }
         }
+
         return jarUrlList;
     }
 

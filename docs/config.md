@@ -43,7 +43,7 @@ sh submit.sh -key1 val1 -key2 val2
     * 默认值：无
 
 * **addjar**
-    * 描述：扩展jar路径,当前主要是UDF定义的jar；
+    * 描述：扩展jar路径,当前主要是UDF定义的jar；参数格式为['/tmp/1.jar', '/tmp/2.jar'], 或者以http开头, 逗号分隔的字符串, 例如: /tmp/1.jar,/tmp/2.jar
     * 必选：否
     * 默认值：无
 
@@ -80,7 +80,6 @@ sh submit.sh -key1 val1 -key2 val2
         * logLevel: 日志级别动态配置（默认info）
         * [prometheus 相关参数](./prometheus.md) per_job可指定metric写入到外部监控组件,以prometheus pushgateway举例
     
-	
 * **flinkconf**
 	* 描述：flink配置文件所在的目录（单机模式下不需要），如/hadoop/flink-1.10.0/conf
 	* 必选：否
